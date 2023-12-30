@@ -6,6 +6,54 @@ A multi-host SSH command line tool written in Go.
 
 `GoSSH "command" "command2" "command3"`
 
+### Installation
+
+#### Go Installation from Source
+
+Clone the repository and change directory:
+```sh
+git clone https://github.com/erictossell/GoSSH.git && cd GoSSH
+```
+
+Install with Go:
+```go
+go install
+```
+
+#### NixOS Flakes Installation
+
+In `flake.nix` inputs add:
+
+```nix
+inputs = {
+  GoSHH.url = "github:erictossell/GoSSH";
+}; 
+```
+
+In `flake.nix` modules add:
+
+```nix
+modules = [
+  ({ pkgs, GoSSH, ... }: 
+  {
+    environment.systemPackages = with pkgs; [
+      GoSSH.packages.${system}.GoSSH
+    ];
+  })
+];
+```
+**or** 
+
+Imported as a `module.nix`:
+
+```nix
+{ pkgs, GoSSH, ... }: 
+{
+  environment.systemPackages = with pkgs; [
+    GoSSH.packages.${system}.GoSSH
+  ];
+}
+```
 
 #### Configuration
 
