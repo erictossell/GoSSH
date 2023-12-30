@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"sync"
@@ -22,6 +23,7 @@ type ServerResult struct {
 type Config struct {
 	Servers    []string          `json:"servers"`
 	SSHOptions map[string]string `json:"ssh_options"` // key: server, value: options
+	Users      map[string]string `json:"users"`
 	// Add other configuration fields here
 }
 
@@ -37,13 +39,22 @@ func readConfig(filePath string) (*Config, error) {
 	}
 	return &config, nil
 }
-func runSSHCommand(server, command, sshOptions string, results chan<- ServerResult) {
+func runSSHCommand(server, user, command, sshOptions string, results chan<- ServerResult) {
+	// Construct the command string for debugging
+	var commandString string
+	if runtime.GOOS == "windows" {
+		commandString = fmt.Sprintf(`ssh %s %s@%s "%s"`, sshOptions, user, server, command)
+	} else {
+		commandString = fmt.Sprintf(`ssh %s %s@%s %s`, sshOptions, user, server, command)
+	}
+	fmt.Println("Executing command:", commandString) // Print the command
+
 	startTime := time.Now()
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-Command", fmt.Sprintf(`ssh %s eriim@%s "%s"`, sshOptions, server, command))
+		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-Command", fmt.Sprintf(`ssh %s %s@%s "%s"`, sshOptions, user, server, command))
 	} else {
-		cmd = exec.Command("ssh", sshOptions, fmt.Sprintf("eriim@%s", server), command)
+		cmd = exec.Command("ssh", sshOptions, fmt.Sprintf("%s@%s", user, server), command)
 	}
 
 	outputBytes, err := cmd.CombinedOutput()
@@ -59,9 +70,37 @@ func runSSHCommand(server, command, sshOptions string, results chan<- ServerResu
 
 func main() {
 	// Read config
-	config, err := readConfig("configuration.json")
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalf("Error reading configuration: %v", err)
+		log.Fatalf("Error getting home directory: %v", err)
+	}
+	configDir := filepath.Join(homeDir, ".config", "GoSSH")
+	configFile := filepath.Join(configDir, "configuration.json")
+
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			log.Fatalf("Error creating config directory: %v", err)
+		}
+		exampleConfig := Config{
+			Servers:    []string{"example.server.com"},
+			SSHOptions: map[string]string{"example.server.com": "-p 22"},
+			Users:      map[string]string{"example.server.com": "example"},
+			// Add other configuration fields here",
+		}
+		exampleConfigBytes, err := json.MarshalIndent(exampleConfig, "", "  ")
+		if err != nil {
+			log.Fatalf("Error marshalling example config: %v", err)
+		}
+		if err := os.WriteFile(configFile, exampleConfigBytes, 0644); err != nil {
+			log.Fatalf("Error writing example config: %v", err)
+		}
+		fmt.Printf("Example configuration file created at %s. Please edit it and run the program again.\n", configFile)
+		os.Exit(1)
+	}
+
+	config, err := readConfig(configFile)
+	if err != nil {
+		log.Fatalf("Error reading config file: %v", err)
 	}
 
 	if len(os.Args) < 2 {
@@ -87,12 +126,13 @@ func main() {
 
 	for _, server := range config.Servers {
 		sshOptions := config.SSHOptions[server]
+		user := config.Users[server] // Retrieve the user for the server
 		for _, command := range commands {
 			wg.Add(1)
-			go func(server, command, sshOptions string) {
+			go func(server, user, command, sshOptions string) {
 				defer wg.Done()
-				runSSHCommand(server, command, sshOptions, results)
-			}(server, command, sshOptions)
+				runSSHCommand(server, user, command, sshOptions, results)
+			}(server, user, command, sshOptions)
 		}
 	}
 
