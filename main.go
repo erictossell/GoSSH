@@ -41,13 +41,12 @@ func readConfig(filePath string) (*Config, error) {
 }
 func runSSHCommand(server, user, command, sshOptions string, results chan<- ServerResult) {
 	// Construct the command string for debugging
-	var commandString string
-	if runtime.GOOS == "windows" {
-		commandString = fmt.Sprintf(`ssh %s %s@%s "%s"`, sshOptions, user, server, command)
-	} else {
-		commandString = fmt.Sprintf(`ssh %s %s@%s %s`, sshOptions, user, server, command)
-	}
-	fmt.Println("Executing command:", commandString) // Print the command
+	//var commandString string
+	//if runtime.GOOS == "windows" {
+	//		commandString = fmt.Sprintf(`ssh %s %s@%s "%s"`, sshOptions, user, server, command)
+	//	} else {
+	//		commandString = fmt.Sprintf(`ssh %s %s@%s %s`, sshOptions, user, server, command)
+	//	}
 
 	startTime := time.Now()
 	var cmd *exec.Cmd
