@@ -12,7 +12,7 @@ A multi-host SSH command line tool written in Go.
 
 Clone the repository and change directory:
 ```sh
-git clone https://github.com/erictossell/GoSSH.git && cd GoSSH
+git clone --depth 1 https://github.com/erictossell/GoSSH.git && cd GoSSH
 ```
 
 Install with Go:
