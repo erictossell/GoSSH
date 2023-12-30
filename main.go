@@ -65,7 +65,7 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: mysshcommand <command1> <command2> ...")
+		fmt.Println("Usage: GoSSH <command1> <command2> ...")
 		os.Exit(1)
 	}
 
