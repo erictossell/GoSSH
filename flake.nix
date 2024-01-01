@@ -31,7 +31,7 @@
           pkgs = nixpkgsFor.${system};
         in
         {
-          go-hello = pkgs.buildGoModule {
+          GoSSH = pkgs.buildGoModule {
             pname = "GoSSH";
             inherit version;
             # In 'nix develop', we don't need a copy of the source tree
